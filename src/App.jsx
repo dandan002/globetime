@@ -303,6 +303,7 @@ function TimeSlider({ anchor, hour12, instant, onScrub }) {
   const minutes = T.minutesOfDay(anchor.tz, instant);
   const pct = minutes / 1440;
   const time = T.formatTime(anchor.tz, instant, hour12);
+  const ticks = [0, 6, 12, 18, 24];
 
   const setFromClientX = useCallback(
     (clientX) => {
@@ -360,6 +361,11 @@ function TimeSlider({ anchor, hour12, instant, onScrub }) {
       >
         <div className="ts-line" />
         <div className="ts-fill" style={{ width: `${pct * 100}%` }} />
+        {ticks.map((hour) => (
+          <div key={hour} className="ts-tick" style={{ left: `${(hour / 24) * 100}%` }}>
+            <span className="ts-ticklbl">{String(hour % 24).padStart(2, "0")}</span>
+          </div>
+        ))}
         <div className="ts-handle" style={{ left: `${pct * 100}%` }} />
       </div>
       <div className={`ts-readout${hovering || dragging ? " is-visible" : ""}`}>

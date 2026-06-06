@@ -257,13 +257,13 @@ button svg { display: block; }
 
 /* ---------- time slider ---------- */
 .time-slider {
-  padding: 12px 20px 14px;
+  padding: 12px 20px 22px;
   display: flex; align-items: center; gap: 12px;
   border-top: 1px solid var(--line);
 }
-.ts-track { position: relative; flex: 1; height: 20px; cursor: pointer; display: flex; align-items: center; }
-.ts-line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line-strong); transform: translateY(-50%); }
-.ts-fill { position: absolute; left: 0; top: 50%; height: 1px; background: var(--accent); transform: translateY(-50%); opacity: 0.5; }
+.ts-track { position: relative; flex: 1; height: 28px; cursor: pointer; display: flex; align-items: center; }
+.ts-line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--muted); transform: translateY(-50%); }
+.ts-fill { position: absolute; left: 0; top: 50%; height: 1px; background: var(--accent); transform: translateY(-50%); opacity: 0.7; }
 .ts-handle {
   position: absolute; top: 50%; width: 8px; height: 8px;
   transform: translate(-50%, -50%) rotate(45deg);
@@ -272,6 +272,8 @@ button svg { display: block; }
   transition: box-shadow .15s;
 }
 .time-slider.is-dragging .ts-handle { box-shadow: 0 0 12px var(--accent); }
+.ts-tick { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 1px; height: 6px; background: var(--muted); }
+.ts-ticklbl { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 8px; color: var(--text); letter-spacing: 0.08em; opacity: 0.7; }
 .ts-readout {
   font-family: var(--font-mono); font-size: 10px; color: var(--muted);
   letter-spacing: 0.08em; white-space: nowrap; min-width: 52px; text-align: right;
