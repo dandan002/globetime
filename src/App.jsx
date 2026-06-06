@@ -771,12 +771,11 @@ export function App() {
           ))}
           {cities.length === 0 && <div className="empty lbl">No locations</div>}
         </div>
+        <TimeSlider anchor={anchor} hour12={hour12} instant={instant} onScrub={scrub} />
         <div className="side-foot lbl">
           Drag globe to rotate / click a row to anchor / click a time to edit
         </div>
       </aside>
-
-      <TimeSlider anchor={anchor} hour12={hour12} instant={instant} onScrub={scrub} />
     </div>
   );
 }
