@@ -4,10 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node server/index.js",
+    "dev": "vite",
     "build": "vite build",
-    "start": "NODE_ENV=production node server/index.js",
-    "preview": "NODE_ENV=production node server/index.js",
+    "preview": "vite preview",
     "test": "vitest run"
   },
   "dependencies": {

@@ -15,7 +15,6 @@ import * as T from "./data/timeutil.js";
 import { GlobeController } from "./globe.js";
 import { resolveDisplayInstant } from "./liveTime.js";
 import { countryCodeLabel } from "./locationLabels.js";
-import { correctedNow, fetchNistTime } from "./nistTime.js";
 import { DEFAULT_SIDEBAR_WIDTH, clampSidebarWidth, parseStoredSidebarWidth } from "./sidebarSize.js";
 
 const ACCENTS = ["#5ad1e6", "#4ea8ff", "#f5a64e", "#9ae65a", "#e0e6ec"];
@@ -455,7 +454,6 @@ function Header({
   onDate,
   onNow,
   onToggleSettings,
-  sync,
   settingsOpen,
   setHour12,
 }) {
@@ -523,9 +521,9 @@ function Header({
           <RotateCcw size={13} />
           NOW
         </button>
-        <div className={`nist-status nist-${sync.state}`}>
+        <div className={`mode-indicator ${live ? "is-live" : "is-manual"}`}>
           <span className="dn-dot" />
-          <span>{live ? sync.label : "MANUAL"}</span>
+          <span>{live ? "LIVE" : "MANUAL"}</span>
         </div>
         <button className="btn btn-primary icon-btn" onClick={onCopy}>
           {copied ? <Check size={13} /> : <Copy size={13} />}
@@ -547,11 +545,6 @@ export function App() {
   const [cities, setCities] = useState(loadInitialCities);
   const [instant, setInstant] = useState(() => new Date());
   const [live, setLive] = useState(true);
-  const [nistOffsetMs, setNistOffsetMs] = useState(0);
-  const [sync, setSync] = useState({
-    state: "pending",
-    label: "NIST SYNC",
-  });
   const [activeId, setActiveId] = useState(() => loadInitialCities()[0]?.id);
   const [hour12, setHour12] = useState(
     () => localStorage.getItem("gt_h12") !== "0",
@@ -576,40 +569,17 @@ export function App() {
     setSettings((current) => ({ ...current, [key]: value }));
   }, []);
 
-  const syncNistTime = useCallback(async ({ setCurrentInstant = false } = {}) => {
-    setSync({ state: "pending", label: "NIST SYNC" });
-    try {
-      const nist = await fetchNistTime();
-      setNistOffsetMs(nist.clientOffsetMs);
-      setSync({
-        state: "synced",
-        label: `NIST ${Math.round(nist.roundTripMs || nist.clientRoundTripMs)}MS`,
-      });
-      if (setCurrentInstant) {
-        setInstant(correctedNow(nist.clientOffsetMs));
-      }
-    } catch {
-      setSync({ state: "error", label: "NIST OFFLINE" });
-    }
-  }, []);
-
-  useEffect(() => {
-    syncNistTime({ setCurrentInstant: true });
-    const interval = window.setInterval(() => syncNistTime(), 10 * 60 * 1000);
-    return () => window.clearInterval(interval);
-  }, [syncNistTime]);
-
   useEffect(() => {
     if (!live) return undefined;
     const tick = () => {
       setInstant((current) =>
-        resolveDisplayInstant({ live: true, offsetMs: nistOffsetMs, instant: current }),
+        resolveDisplayInstant({ live: true, instant: current }),
       );
     };
     tick();
-    const interval = window.setInterval(tick, 1000);
+    const interval = window.setInterval(tick, 100);
     return () => window.clearInterval(interval);
-  }, [live, nistOffsetMs]);
+  }, [live]);
 
   useEffect(() => {
     const canvas = document.getElementById("globe");
@@ -762,10 +732,9 @@ export function App() {
         onDate={changeDate}
         onNow={() => {
           setLive(true);
-          setInstant(correctedNow(nistOffsetMs));
+          setInstant(new Date());
         }}
         onToggleSettings={() => setSettingsOpen((open) => !open)}
-        sync={sync}
         settingsOpen={settingsOpen}
         setHour12={setHour12}
       />
