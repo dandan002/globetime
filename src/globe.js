@@ -92,6 +92,7 @@ import * as THREE from "three";
     this.style = "dots";
     this.accent = new THREE.Color("#5ad1e6");
     this.sunDir = new THREE.Vector3(1, 0, 0);
+    this.sunWorld = new THREE.Vector3(1, 0, 0);
     this.targetYaw = 0.4;
     this.yaw = 0.4;
     this.tilt = 0.32;
@@ -122,7 +123,7 @@ import * as THREE from "three";
 
     // occluder / surface sphere
     this.surfUniforms = {
-      uSun: { value: this.sunDir },
+      uSun: { value: this.sunWorld },
       uDay: { value: new THREE.Color("#2b3744") },
       uNight: { value: new THREE.Color("#161f29") },
       uTerm: { value: new THREE.Color("#10151a") },
@@ -144,7 +145,7 @@ import * as THREE from "three";
     this.dotUniforms = {
       uSize: { value: 2.3 },
       uScale: { value: 8.4 },
-      uSun: { value: this.sunDir },
+      uSun: { value: this.sunWorld },
       uDay: { value: new THREE.Color("#eef3f5") },
       uNight: { value: new THREE.Color("#2b3a44") },
       uOpacity: { value: 0.9 },
@@ -153,7 +154,7 @@ import * as THREE from "three";
     // atmosphere
     this.atmUniforms = {
       uColor: { value: this.accent.clone() },
-      uSun: { value: this.sunDir },
+      uSun: { value: this.sunWorld },
       uIntensity: { value: 1.0 },
     };
     const atm = new THREE.Mesh(
@@ -548,6 +549,13 @@ import * as THREE from "three";
         const ease = 1 - Math.pow(1 - p, 3);
         a.line.geometry.setDrawRange(0, Math.max(1, Math.floor(ease * (ud.N + 1))));
       }
+
+      // transform sun direction to world space (account for globe yaw)
+      const cosY = Math.cos(this.yaw);
+      const sinY = Math.sin(this.yaw);
+      this.sunWorld.x = cosY * this.sunDir.x + sinY * this.sunDir.z;
+      this.sunWorld.y = this.sunDir.y;
+      this.sunWorld.z = -sinY * this.sunDir.x + cosY * this.sunDir.z;
 
       this.renderer.render(this.scene, this.camera);
     };

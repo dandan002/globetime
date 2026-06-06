@@ -17,7 +17,7 @@ import { resolveDisplayInstant } from "./liveTime.js";
 import { countryCodeLabel } from "./locationLabels.js";
 import { DEFAULT_SIDEBAR_WIDTH, clampSidebarWidth, parseStoredSidebarWidth } from "./sidebarSize.js";
 
-const ACCENTS = ["#5ad1e6", "#4ea8ff", "#f5a64e", "#9ae65a", "#e0e6ec"];
+const ACCENTS = ["#c8cdd3", "#4ea8ff", "#f5a64e", "#9ae65a", "#5ad1e6"];
 const FONTS = {
   plex: {
     ui: '"IBM Plex Sans", system-ui, sans-serif',
@@ -29,7 +29,7 @@ const FONTS = {
   },
 };
 const DEFAULT_SETTINGS = {
-  accent: "#5ad1e6",
+  accent: "#c8cdd3",
   globeStyle: "dots",
   fontPair: "plex",
   grid: 0.55,
@@ -296,13 +296,13 @@ function AddCity({ existing, onAdd }) {
   );
 }
 
-function Timeline({ anchor, hour12, instant, onScrub }) {
+function TimeSlider({ anchor, hour12, instant, onScrub }) {
   const trackRef = useRef(null);
   const [dragging, setDragging] = useState(false);
+  const [hovering, setHovering] = useState(false);
   const minutes = T.minutesOfDay(anchor.tz, instant);
   const pct = minutes / 1440;
   const time = T.formatTime(anchor.tz, instant, hour12);
-  const ticks = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 
   const setFromClientX = useCallback(
     (clientX) => {
@@ -341,20 +341,13 @@ function Timeline({ anchor, hour12, instant, onScrub }) {
   }, [dragging, setFromClientX]);
 
   return (
-    <div className="timeline">
-      <div className="tl-head">
-        <span className="lbl">Timeline</span>
-        <span className="tl-anchor lbl">
-          <span className="dn-dot tl-anchordot" />
-          {anchor.name}
-        </span>
-        <span className="tl-read">
-          {time.main}
-          <span className="time-suf">{time.suffix}</span>
-        </span>
-      </div>
+    <div
+      className={`time-slider${dragging ? " is-dragging" : ""}`}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+    >
       <div
-        className="tl-track"
+        className="ts-track"
         ref={trackRef}
         onMouseDown={(event) => {
           setDragging(true);
@@ -365,17 +358,13 @@ function Timeline({ anchor, hour12, instant, onScrub }) {
           setFromClientX(event.touches[0].clientX);
         }}
       >
-        <div className="tl-daynight" />
-        <div className="tl-fill" style={{ width: `${pct * 100}%` }} />
-        {ticks.map((hour) => (
-          <div key={hour} className="tl-tick" style={{ left: `${(hour / 24) * 100}%` }}>
-            <span className="tl-ticklbl">{String(hour).padStart(2, "0")}</span>
-          </div>
-        ))}
-        <div className="tl-handle" style={{ left: `${pct * 100}%` }}>
-          <div className="tl-handle-line" />
-          <div className="tl-handle-grip" />
-        </div>
+        <div className="ts-line" />
+        <div className="ts-fill" style={{ width: `${pct * 100}%` }} />
+        <div className="ts-handle" style={{ left: `${pct * 100}%` }} />
+      </div>
+      <div className={`ts-readout${hovering || dragging ? " is-visible" : ""}`}>
+        {time.main}
+        {time.suffix && <span className="time-suf">{time.suffix}</span>}
       </div>
     </div>
   );
@@ -787,7 +776,7 @@ export function App() {
         </div>
       </aside>
 
-      <Timeline anchor={anchor} hour12={hour12} instant={instant} onScrub={scrub} />
+      <TimeSlider anchor={anchor} hour12={hour12} instant={instant} onScrub={scrub} />
     </div>
   );
 }
