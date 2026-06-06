@@ -10,7 +10,7 @@ A time zone console with an interactive 3D globe. Track multiple cities, scrub t
 - **NIST time sync** — Server-side NTP sync with `time.nist.gov` for accurate wall-clock time
 - **Day/night detection** — Solar position calculated from subsolar point for each city
 - **Copy to clipboard** — Export all city times in a formatted meeting-time block
-- **Customizable display** — Accent colors, globe render styles (dots/wire/solid), font pairs, and texture intensity
+- **Customizable display** — Accent colors, globe render styles (borders/wire/solid), font pairs, and texture intensity
 - **Responsive sidebar** — Resizable panel with persistent width via localStorage
 
 ## Tech Stack
