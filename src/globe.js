@@ -1,6 +1,8 @@
-// Globe controller - Three.js dotted earth with sun-shader day/night,
+// Globe controller - Three.js bordered earth with sun-shader day/night,
 // city markers, great-circle arcs, and 3 visual styles.
 import * as THREE from "three";
+import { sampleBorderLineSegments } from "./data/borderGeometry.js";
+import { worldBorders } from "./data/worldBorders.js";
 
   const RAD = Math.PI / 180;
   const R = 1.0;
@@ -17,28 +19,21 @@ import * as THREE from "three";
   }
 
   // ----- shaders -----
-  const DOT_VERT = `
-    uniform float uSize; uniform float uScale;
+  const BORDER_VERT = `
     varying vec3 vN;
     void main(){
       vN = normalize(mat3(modelMatrix) * normalize(position));
-      vec4 mv = modelViewMatrix * vec4(position,1.0);
-      gl_Position = projectionMatrix * mv;
-      gl_PointSize = uSize * (uScale / -mv.z);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
     }`;
-  const DOT_FRAG = `
+  const BORDER_FRAG = `
     precision mediump float;
     uniform vec3 uSun; uniform vec3 uDay; uniform vec3 uNight; uniform float uOpacity;
     varying vec3 vN;
     void main(){
-      vec2 c = gl_PointCoord - 0.5;
-      float d = length(c);
-      if(d>0.5) discard;
-      float aa = smoothstep(0.5,0.40,d);
       float lit = dot(normalize(vN), normalize(uSun));
       float day = smoothstep(-0.12,0.18,lit);
       vec3 col = mix(uNight, uDay, day);
-      gl_FragColor = vec4(col, uOpacity*aa);
+      gl_FragColor = vec4(col, uOpacity);
     }`;
 
   const SURF_VERT = `
@@ -89,7 +84,7 @@ import * as THREE from "three";
     this.cities = [];
     this.markers = new Map();
     this.arcs = [];
-    this.style = "dots";
+    this.style = "borders";
     this.accent = new THREE.Color("#5ad1e6");
     this.sunDir = new THREE.Vector3(1, 0, 0);
     this.sunWorld = new THREE.Vector3(1, 0, 0);
@@ -141,10 +136,8 @@ import * as THREE from "three";
     this.graticule = this._buildGraticule();
     group.add(this.graticule);
 
-    // dot uniforms
-    this.dotUniforms = {
-      uSize: { value: 2.3 },
-      uScale: { value: 8.4 },
+    // border uniforms
+    this.borderUniforms = {
       uSun: { value: this.sunWorld },
       uDay: { value: new THREE.Color("#eef3f5") },
       uNight: { value: new THREE.Color("#2b3a44") },
@@ -175,7 +168,7 @@ import * as THREE from "three";
 
     this._dotSprite = this._makeDotTexture();
 
-    this._buildDots(); // async-ish (loads mask)
+    this._buildBorders();
     this._bindPointer();
     window.addEventListener("resize", () => this.resize());
     if (window.ResizeObserver) {
@@ -223,74 +216,25 @@ import * as THREE from "three";
     return t;
   };
 
-  // Build the land dots from a world image mask (with uniform fallback).
-  GlobeController.prototype._buildDots = function () {
-    const self = this;
-    const urls = [
-      "https://unpkg.com/three-globe/example/img/earth-dark.jpg",
-      "https://unpkg.com/three-globe@2.31.0/example/img/earth-dark.jpg",
-    ];
-    let idx = 0;
-    function tryLoad() {
-      if (idx >= urls.length) { self._dotsFromMask(null); return; }
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = function () {
-        try { self._dotsFromMask(img); }
-        catch (e) { self._dotsFromMask(null); }
-      };
-      img.onerror = function () { idx++; tryLoad(); };
-      img.src = urls[idx];
-    }
-    tryLoad();
-  };
-
-  GlobeController.prototype._dotsFromMask = function (img) {
+  // Build thin line segments along local country/coast border geometry.
+  GlobeController.prototype._buildBorders = function () {
     const positions = [];
-    let sampler = null;
-    if (img) {
-      const W = 720, H = 360;
-      const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
-      const cx = cv.getContext("2d");
-      cx.drawImage(img, 0, 0, W, H);
-      const data = cx.getImageData(0, 0, W, H).data;
-      const lum = (u, v) => {
-        const px = Math.min(W - 1, Math.max(0, Math.floor(u * W)));
-        const py = Math.min(H - 1, Math.max(0, Math.floor(v * H)));
-        const i = (py * W + px) * 4;
-        return (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
-      };
-      // Land is the brighter ~30% of an earth-dark/relief map. Pick a percentile
-      // threshold so we keep roughly the top third of brightness as land.
-      const samples = [];
-      for (let v = 0; v < H; v += 3) for (let u = 0; u < W; u += 3) samples.push(lum(u / W, v / H));
-      samples.sort((a, b) => a - b);
-      const thr = Math.max(24, samples[Math.floor(samples.length * 0.66)]);
-      sampler = (u, v) => lum(u, v) > thr;
+    const borderSegments = sampleBorderLineSegments(worldBorders, 0.8);
+
+    for (const [lon, lat] of borderSegments) {
+      const p = llToVec(lat, lon, R);
+      positions.push(p.x, p.y, p.z);
     }
-    // candidate grid, roughly equal-area
-    const latStep = 1.0;
-    for (let lat = -84; lat <= 84; lat += latStep) {
-      const circ = Math.cos(lat * RAD);
-      const lonStep = Math.max(1.0, latStep / Math.max(0.12, circ));
-      for (let lon = -180; lon < 180; lon += lonStep) {
-        const u = (lon + 180) / 360, v = (90 - lat) / 180;
-        const keep = sampler ? sampler(u, v) : (Math.random() > 0.5);
-        if (!keep) continue;
-        const p = llToVec(lat, lon, R);
-        positions.push(p.x, p.y, p.z);
-      }
-    }
+
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
     const mat = new THREE.ShaderMaterial({
-      vertexShader: DOT_VERT, fragmentShader: DOT_FRAG, uniforms: this.dotUniforms,
+      vertexShader: BORDER_VERT, fragmentShader: BORDER_FRAG, uniforms: this.borderUniforms,
       transparent: true, depthWrite: true,
     });
-    if (this.dots) { this.group.remove(this.dots); this.dots.geometry.dispose(); }
-    this.dots = new THREE.Points(g, mat);
-    this.group.add(this.dots);
-    this._uniform = sampler == null; // flag fallback used
+    if (this.borders) { this.group.remove(this.borders); this.borders.geometry.dispose(); }
+    this.borders = new THREE.LineSegments(g, mat);
+    this.group.add(this.borders);
     this.applyStyle(this.style);
   };
 
@@ -332,7 +276,6 @@ import * as THREE from "three";
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.dotUniforms.uScale.value = (this.camDist || 4.2) * (Math.min(window.devicePixelRatio || 1, 2));
     if (this.scene && this.camera) this.renderer.render(this.scene, this.camera);
   };
 
@@ -350,36 +293,35 @@ import * as THREE from "three";
   };
 
   GlobeController.prototype.applyStyle = function (style) {
-    this.style = style;
-    const dots = this.dots, grat = this.graticule, surf = this.surf;
-    if (style === "dots") {
-      if (dots) dots.visible = true;
+    const normalizedStyle = style === "dots" ? "borders" : style;
+    this.style = normalizedStyle;
+    const borders = this.borders, grat = this.graticule;
+    if (normalizedStyle === "borders") {
+      if (borders) borders.visible = true;
       grat.material.opacity = 0.14;
       this.surfUniforms.uDay.value.set("#384a57");
       this.surfUniforms.uNight.value.set("#212e39");
       this.surfUniforms.uTerm.value.set("#243643");
-      this.dotUniforms.uOpacity.value = 1.0;
-      this.dotUniforms.uSize.value = 2.3;
-      this.dotUniforms.uDay.value.set("#ffffff");
-      this.dotUniforms.uNight.value.set("#94adbc");
+      this.borderUniforms.uOpacity.value = 0.85;
+      this.borderUniforms.uDay.value.set("#ffffff");
+      this.borderUniforms.uNight.value.set("#94adbc");
       this.atmUniforms.uIntensity.value = 0.7;
-    } else if (style === "wire") {
-      if (dots) dots.visible = false;
+    } else if (normalizedStyle === "wire") {
+      if (borders) borders.visible = false;
       grat.material.opacity = 0.5;
       this.surfUniforms.uDay.value.set("#141a1f");
       this.surfUniforms.uNight.value.set("#0a0e12");
       this.surfUniforms.uTerm.value.set("#14202a");
       this.atmUniforms.uIntensity.value = 0.85;
-    } else if (style === "solid") {
-      if (dots) dots.visible = true;
+    } else if (normalizedStyle === "solid") {
+      if (borders) borders.visible = true;
       grat.material.opacity = 0.06;
       this.surfUniforms.uDay.value.set("#222831");
       this.surfUniforms.uNight.value.set("#0d1115");
       this.surfUniforms.uTerm.value.set("#1c232b");
-      this.dotUniforms.uOpacity.value = 0.6;
-      this.dotUniforms.uSize.value = 2.0;
-      this.dotUniforms.uDay.value.set("#dfe6ec");
-      this.dotUniforms.uNight.value.set("#54707f");
+      this.borderUniforms.uOpacity.value = 0.55;
+      this.borderUniforms.uDay.value.set("#dfe6ec");
+      this.borderUniforms.uNight.value.set("#54707f");
       this.atmUniforms.uIntensity.value = 0.5;
     }
   };

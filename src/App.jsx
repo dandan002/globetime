@@ -30,7 +30,7 @@ const FONTS = {
 };
 const DEFAULT_SETTINGS = {
   accent: "#c8cdd3",
-  globeStyle: "dots",
+  globeStyle: "borders",
   fontPair: "plex",
   grid: 0.55,
 };
@@ -58,6 +58,15 @@ function loadInitialCities() {
   }
 
   return ["New York", "London", "Tokyo"].map(findCity).filter(Boolean);
+}
+
+function loadInitialSettings() {
+  const saved = safeLoad("gt_settings", {});
+  const settings = { ...DEFAULT_SETTINGS, ...saved };
+
+  if (settings.globeStyle === "dots") settings.globeStyle = "borders";
+
+  return settings;
 }
 
 function parseTimeInput(value) {
@@ -399,7 +408,7 @@ function SettingsPanel({ settings, setSetting }) {
       <div className="settings-section">
         <div className="lbl">Render</div>
         <div className="seg settings-seg">
-          {["dots", "wire", "solid"].map((style) => (
+          {["borders", "wire", "solid"].map((style) => (
             <button
               key={style}
               className={settings.globeStyle === style ? "seg-on" : ""}
@@ -546,10 +555,7 @@ export function App() {
   );
   const [copied, setCopied] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settings, setSettings] = useState(() => ({
-    ...DEFAULT_SETTINGS,
-    ...safeLoad("gt_settings", {}),
-  }));
+  const [settings, setSettings] = useState(loadInitialSettings);
   const [sidebarWidth, setSidebarWidth] = useState(() =>
     typeof window === "undefined"
       ? DEFAULT_SIDEBAR_WIDTH
