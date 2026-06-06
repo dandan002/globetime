@@ -387,6 +387,7 @@ import * as THREE from "three";
   GlobeController.prototype.setCities = function (list, activeId, silent) {
     const prevIds = new Set(this.markers.keys());
     const nextIds = new Set(list.map((c) => c.id));
+    const prevActiveId = this.activeId;
     this.cities = list.slice();
     this.activeId = activeId;
 
@@ -416,6 +417,12 @@ import * as THREE from "three";
       m.pillar.material.color.copy(this.accent);
       m.active = active;
     });
+
+    // rotate to active city when selection changes (city already exists)
+    if (activeId && activeId !== prevActiveId && this.markers.has(activeId)) {
+      const c = list.find((city) => city.id === activeId);
+      if (c) this.rotateToCity(c);
+    }
 
     this._rebuildArcs();
   };
@@ -492,7 +499,7 @@ import * as THREE from "three";
 
   GlobeController.prototype.rotateToCity = function (c) {
     // desired yaw so the city faces camera (+Z), with slight tilt to its latitude
-    const targetYaw = Math.atan2(-Math.cos(c.lat * RAD) * Math.cos((c.lon + 180) * RAD),
+    const targetYaw = Math.atan2(Math.cos(c.lat * RAD) * Math.cos((c.lon + 180) * RAD),
       Math.cos(c.lat * RAD) * Math.sin((c.lon + 180) * RAD));
     // normalize relative to current to take short path
     let ty = targetYaw;
