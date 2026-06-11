@@ -229,10 +229,15 @@ function AddCity({ existing, onAdd }) {
     [existing],
   );
   const results = query.trim()
-    ? CITIES.filter((city) => {
-        const haystack = `${city.name} ${city.country}`.toLowerCase();
-        return !existingIds.has(city.id) && haystack.includes(query.toLowerCase());
-      }).slice(0, 7)
+    ? (() => {
+        const q = query.toLowerCase();
+        const now = new Date();
+        return CITIES.filter((city) => {
+          if (existingIds.has(city.id)) return false;
+          const haystack = `${city.name} ${city.country} ${city.tz} ${T.abbrev(city.tz, now)} ${T.offsetLabel(city.tz, now)}`.toLowerCase();
+          return haystack.includes(q);
+        }).slice(0, 7);
+      })()
     : [];
 
   useEffect(() => {
