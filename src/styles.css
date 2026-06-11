@@ -319,8 +319,19 @@ input[type="date"] { color-scheme: dark; }
 
 /* responsive */
 @media (max-width: 860px) {
-  #globe-wrap { right: 0; bottom: 46%; }
-  .sidebar { top: auto; bottom: 0; left: 0; width: 100%; height: 54%; padding-top: 14px; border-left: none; border-top: 1px solid var(--line); }
+  :root { --mobile-globe-h: 42%; }
+  #globe-wrap { right: 0; bottom: calc(100% - var(--mobile-globe-h)); }
+  .sidebar {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100% - var(--mobile-globe-h));
+    padding-top: 18px;
+    border-left: none;
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -14px 24px rgba(8,9,11,0.55);
+  }
   .sidebar-resizer { display: none; }
   .header-ctrls { gap: 6px; }
   .brand-sub { display: none; }
