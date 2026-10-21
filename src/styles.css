@@ -14,6 +14,7 @@
   --grid: 0.55;
   --font-ui: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --header-h: 60px;
   color-scheme: dark;
   font-synthesis: none;
   text-rendering: geometricPrecision;
@@ -51,7 +52,8 @@ body {
 }
 
 #globe-wrap {
-  position: fixed; inset: 0 var(--sidebar-w, 372px) 0 0; z-index: 2;
+  /* starts below the header so the top of the globe isn't hidden behind it */
+  position: fixed; inset: var(--header-h) var(--sidebar-w, 372px) 0 0; z-index: 2;
 }
 #globe { width: 100%; height: 100%; display: block; cursor: grab; }
 #globe:active { cursor: grabbing; }
@@ -75,7 +77,7 @@ button svg { display: block; }
 
 /* ---------- header ---------- */
 .header {
-  position: fixed; top: 0; left: 0; right: 0; height: 60px; z-index: 20;
+  position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); z-index: 20;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 22px 0 22px;
   background: linear-gradient(180deg, rgba(8,9,11,0.92), rgba(8,9,11,0.55));
@@ -98,8 +100,8 @@ button svg { display: block; }
 .settings-toggle.is-open { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
 .step:hover { color: var(--text); border-color: var(--line-strong); background: rgba(255,255,255,0.03); }
 .date-disp {
-  position: relative; display: flex; align-items: baseline; gap: 7px;
-  height: 32px; padding: 0 14px; border: 1px solid var(--line); background: rgba(255,255,255,0.015);
+  position: relative; display: flex; align-items: center; gap: 7px;
+  height: 32px; line-height: 1; padding: 0 14px; border: 1px solid var(--line); background: rgba(255,255,255,0.015);
   min-width: 150px; justify-content: center;
 }
 .date-wd { color: var(--accent); font-size: 9px; }
@@ -242,6 +244,8 @@ button svg { display: block; }
   font-family: var(--font-mono); font-size: 18px; text-align: right; padding: 2px 6px; outline: none; }
 .row-date { margin-top: 3px; font-size: 9px; display: flex; gap: 6px; justify-content: flex-end; align-items: center; white-space: nowrap; }
 .delta { color: var(--accent); border: 1px solid var(--accent-dim); padding: 0 4px; font-size: 8px; }
+/* keeps the date column aligned across rows whether or not a day offset is shown */
+.delta-none { visibility: hidden; }
 .row-x { width: 22px; height: 22px; background: transparent; border: none; color: var(--faint);
   display: grid; place-items: center; font-size: 16px; line-height: 1; opacity: 0; transition: all .15s; }
 .row:hover .row-x { opacity: 1; }
@@ -282,6 +286,8 @@ button svg { display: block; }
   opacity: 0; transition: opacity .2s;
 }
 .ts-readout.is-visible { opacity: 1; }
+.ts-readout .time-suf { margin-left: 3px; }
+@media (hover: none) { .ts-readout { opacity: 1; } }
 
 /* date input dark scheme */
 input[type="date"] { color-scheme: dark; }
@@ -333,8 +339,9 @@ input[type="date"] { color-scheme: dark; }
   .mode-indicator { min-width: 92px; padding: 0 8px; font-size: 9px; }
 }
 
-@media (max-width: 860px) {
-  :root { --mobile-globe-h: 42%; }
+/* stacked layout for portrait screens; landscape phones keep the globe beside the list */
+@media (max-width: 860px) and (orientation: portrait), (max-width: 560px) {
+  :root { --mobile-globe-h: 44%; }
   #globe-wrap { right: 0; bottom: calc(100% - var(--mobile-globe-h)); }
   .sidebar {
     top: auto;
@@ -350,8 +357,18 @@ input[type="date"] { color-scheme: dark; }
   }
   .side-list { flex: 1 0 auto; min-height: 140px; }
   .sidebar-resizer { display: none; }
-  .header { height: 58px; }
   .corner-mark { display: none; }
+}
+
+@media (max-width: 860px) {
+  :root { --header-h: 58px; }
+}
+
+@media (max-height: 500px) {
+  .corner-mark, .side-foot { display: none; }
+  .side-head { padding-bottom: 8px; }
+  .addcity { margin-bottom: 8px; }
+  .time-slider { padding: 8px 20px 18px; }
 }
 
 @media (max-width: 720px) {
@@ -380,4 +397,6 @@ input[type="date"] { color-scheme: dark; }
   .date-disp { padding: 0 6px; }
   .seg button { padding: 0 5px; }
   .row { gap: 7px; padding: 11px 8px 11px 10px; grid-template-columns: 16px minmax(0,1fr) auto 20px; }
+  .dotsep { margin: 0 3px; }
+  .row-meta { letter-spacing: 0.1em; }
 }

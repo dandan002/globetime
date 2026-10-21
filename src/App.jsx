@@ -200,9 +200,9 @@ function CityRow({
         )}
         <div className="row-date lbl">
           {date.weekday} {date.month} {date.day}
-          {delta !== 0 && (
-            <span className="delta">{delta > 0 ? `+${delta}` : delta}d</span>
-          )}
+          <span className={`delta${delta === 0 ? " delta-none" : ""}`} aria-hidden={delta === 0}>
+            {delta >= 0 ? `+${delta}` : delta}d
+          </span>
         </div>
       </div>
       <button
