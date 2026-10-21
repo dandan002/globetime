@@ -12,4 +12,9 @@ describe("sidebar sizing", () => {
     expect(parseStoredSidebarWidth("420", 1200)).toBe(420);
     expect(parseStoredSidebarWidth("bad", 1200)).toBe(372);
   });
+
+  test("uses the default width when nothing is stored", () => {
+    expect(parseStoredSidebarWidth(null, 1200)).toBe(372);
+    expect(parseStoredSidebarWidth("", 1200)).toBe(372);
+  });
 });

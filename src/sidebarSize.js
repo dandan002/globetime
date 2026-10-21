@@ -8,6 +8,7 @@ export function clampSidebarWidth(width, viewportWidth) {
 }
 
 export function parseStoredSidebarWidth(value, viewportWidth) {
+  if (value == null || value === "") return clampSidebarWidth(DEFAULT_SIDEBAR_WIDTH, viewportWidth);
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return DEFAULT_SIDEBAR_WIDTH;
   return clampSidebarWidth(parsed, viewportWidth);
