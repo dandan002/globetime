@@ -275,6 +275,10 @@ import { worldBorders } from "./data/worldBorders.js";
     const h = this.canvas.clientHeight || 600;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
+    // pull the camera back on tall/narrow canvases so the globe's sides aren't cropped
+    const vHalf = (this.camera.fov * Math.PI) / 360;
+    const hHalf = Math.atan(Math.tan(vHalf) * this.camera.aspect);
+    this.camDist = 4.2 * Math.max(1, Math.sin(vHalf) / Math.sin(hHalf));
     this.camera.updateProjectionMatrix();
     if (this.scene && this.camera) this.renderer.render(this.scene, this.camera);
   };
