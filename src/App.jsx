@@ -19,19 +19,13 @@ import { DEFAULT_SIDEBAR_WIDTH, clampSidebarWidth, parseStoredSidebarWidth } fro
 
 const ACCENTS = ["#c8cdd3", "#4ea8ff", "#f5a64e", "#9ae65a", "#5ad1e6"];
 const FONTS = {
-  plex: {
-    ui: '"IBM Plex Sans", system-ui, sans-serif',
-    mono: '"IBM Plex Mono", ui-monospace, monospace',
-  },
-  grotesk: {
-    ui: '"Space Grotesk", system-ui, sans-serif',
-    mono: '"JetBrains Mono", ui-monospace, monospace',
-  },
+  inter: '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  system: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
 };
 const DEFAULT_SETTINGS = {
   accent: "#c8cdd3",
   globeStyle: "borders",
-  fontPair: "plex",
+  fontPair: "inter",
   grid: 0.55,
 };
 
@@ -65,6 +59,7 @@ function loadInitialSettings() {
   const settings = { ...DEFAULT_SETTINGS, ...saved };
 
   if (settings.globeStyle === "dots") settings.globeStyle = "borders";
+  if (!FONTS[settings.fontPair]) settings.fontPair = DEFAULT_SETTINGS.fontPair;
 
   return settings;
 }
@@ -118,7 +113,6 @@ function CityRow({
   active,
   city,
   hour12,
-  index,
   instant,
   onEditTime,
   onRemove,
@@ -157,17 +151,12 @@ function CityRow({
       className={`row${active ? " row-active" : ""}`}
       onClick={() => onSelect(city.id)}
     >
-      <div
-        className="row-rail"
-        style={{ background: active ? "var(--accent)" : "transparent" }}
-      />
-      <div className="row-idx">{String(index + 1).padStart(2, "0")}</div>
       <div className="row-main">
         <div className="row-top">
           <span className="row-name">{city.name}</span>
           <span className={`daynight ${daylight ? "is-day" : "is-night"}`}>
             <span className="dn-dot" />
-            {daylight ? "DAY" : "NIGHT"}
+            {daylight ? "Day" : "Night"}
           </span>
         </div>
         <div className="row-meta lbl">
@@ -199,9 +188,12 @@ function CityRow({
           </button>
         )}
         <div className="row-date lbl">
-          {date.weekday} {date.month} {date.day}
-          <span className={`delta${delta === 0 ? " delta-none" : ""}`} aria-hidden={delta === 0}>
-            {delta >= 0 ? `+${delta}` : delta}d
+          {/* badge leads so the date itself stays flush right under the time */}
+          {delta !== 0 && (
+            <span className="delta">{delta > 0 ? `+${delta}` : delta}d</span>
+          )}
+          <span>
+            {date.weekday} {date.month} {date.day}
           </span>
         </div>
       </div>
@@ -427,7 +419,7 @@ function SettingsPanel({ settings, setSetting }) {
       <div className="settings-section">
         <div className="lbl">Typeface</div>
         <div className="seg settings-seg">
-          {["plex", "grotesk"].map((font) => (
+          {Object.keys(FONTS).map((font) => (
             <button
               key={font}
               className={settings.fontPair === font ? "seg-on" : ""}
@@ -477,8 +469,7 @@ function Header({
           <Globe2 size={21} />
         </div>
         <div className="brand-txt">
-          <div className="brand-name">GLOBETIME</div>
-          <div className="brand-sub lbl">TIME ZONE CONSOLE</div>
+          <div className="brand-name">GlobeTime</div>
         </div>
       </div>
 
@@ -513,7 +504,7 @@ function Header({
             onClick={() => setHour12(true)}
             title="Show times in 12-hour format"
           >
-            12H
+            12h
           </button>
           <button
             type="button"
@@ -522,21 +513,21 @@ function Header({
             onClick={() => setHour12(false)}
             title="Show times in 24-hour format"
           >
-            24H
+            24h
           </button>
         </div>
 
         <button className="btn icon-btn" onClick={onNow}>
           <RotateCcw size={13} />
-          NOW
+          Now
         </button>
         <div className={`mode-indicator ${live ? "is-live" : "is-manual"}`}>
           <span className="dn-dot" />
-          <span>{live ? "LIVE" : "MANUAL"}</span>
+          <span>{live ? "Live" : "Paused"}</span>
         </div>
         <button className="btn btn-primary icon-btn" onClick={onCopy}>
           {copied ? <Check size={13} /> : <Copy size={13} />}
-          {copied ? "COPIED" : "COPY"}
+          {copied ? "Copied" : "Copy"}
         </button>
         <button
           className={`step settings-toggle${settingsOpen ? " is-open" : ""}`}
@@ -614,12 +605,11 @@ export function App() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const font = FONTS[settings.fontPair] || FONTS.plex;
+    const font = FONTS[settings.fontPair] || FONTS.inter;
     root.style.setProperty("--accent", settings.accent);
     root.style.setProperty("--accent-dim", hexA(settings.accent, 0.18));
     root.style.setProperty("--grid", String(settings.grid));
-    root.style.setProperty("--font-ui", font.ui);
-    root.style.setProperty("--font-mono", font.mono);
+    root.style.setProperty("--font-ui", font);
     localStorage.setItem("gt_settings", JSON.stringify(settings));
     if (globeRef.current) {
       globeRef.current.setAccent(settings.accent);
@@ -745,13 +735,6 @@ export function App() {
         setHour12={setHour12}
       />
 
-      <div className="corner-mark" style={{ left: 24, bottom: 150 }}>
-        LAT/LON - IANA TZDB
-      </div>
-      <div className="corner-mark" style={{ left: 24, bottom: 134 }}>
-        {cities.length} NODES ACTIVE
-      </div>
-
       <aside className="sidebar">
         <button
           type="button"
@@ -765,20 +748,19 @@ export function App() {
         />
         <div className="side-head">
           <span className="lbl">Locations</span>
-          <span className="lbl side-count">{String(cities.length).padStart(2, "0")}</span>
+          <span className="lbl side-count">{cities.length}</span>
         </div>
         {settingsOpen && (
           <SettingsPanel settings={settings} setSetting={setSetting} />
         )}
         <AddCity existing={cities} onAdd={addCity} />
         <div className="side-list">
-          {cities.map((city, index) => (
+          {cities.map((city) => (
             <CityRow
               key={city.id}
               active={city.id === activeId}
               city={city}
               hour12={hour12}
-              index={index}
               instant={instant}
               onEditTime={editTime}
               onRemove={removeCity}
@@ -790,7 +772,7 @@ export function App() {
         </div>
         <TimeSlider anchor={anchor} hour12={hour12} instant={instant} onScrub={scrub} />
         <div className="side-foot lbl">
-          Drag globe to rotate / click a row to anchor / click a time to edit
+          Drag the globe to rotate. Select a row to make it the reference, or select a time to edit it.
         </div>
       </aside>
     </div>
