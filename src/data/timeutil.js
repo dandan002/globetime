@@ -137,7 +137,6 @@ export function formatTime(timeZone, instant, hour12) {
   };
 }
 
-export const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const MO = [
   "Jan",
   "Feb",
@@ -175,19 +174,3 @@ export function minutesOfDay(timeZone, instant) {
   const parts = localParts(timeZone, instant);
   return parts.hour * 60 + parts.minute;
 }
-
-export const TimeUtil = {
-  localParts,
-  offsetMinutes,
-  wallToInstant,
-  abbrev,
-  offsetLabel,
-  subsolarPoint,
-  formatTime,
-  formatDateShort,
-  dayDelta,
-  minutesOfDay,
-  WD,
-  MO,
-  pad2,
-};
