@@ -57,7 +57,7 @@ import { worldBorders } from "./data/worldBorders.js";
       float t = 1.0 - smoothstep(0.0, 0.12, abs(lit));
       col += uTerm * t;
       float fres = pow(1.0 - max(dot(N, V), 0.0), 3.4);
-      col += uRim * fres * 0.6;
+      col += uRim * fres * 0.18;
       gl_FragColor = vec4(col, 1.0);
     }`;
 
@@ -207,11 +207,9 @@ import { worldBorders } from "./data/worldBorders.js";
     const c = document.createElement("canvas");
     c.width = c.height = 64;
     const x = c.getContext("2d");
-    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-    g.addColorStop(0, "rgba(255,255,255,1)");
-    g.addColorStop(0.5, "rgba(255,255,255,0.9)");
-    g.addColorStop(1, "rgba(255,255,255,0)");
-    x.fillStyle = g; x.beginPath(); x.arc(32, 32, 32, 0, 7); x.fill();
+    // solid dot with a dark outline so it reads against the borders
+    x.fillStyle = "#fff"; x.beginPath(); x.arc(32, 32, 26, 0, 7); x.fill();
+    x.lineWidth = 6; x.strokeStyle = "rgba(8,9,11,0.85)"; x.stroke();
     const t = new THREE.CanvasTexture(c);
     return t;
   };
@@ -309,14 +307,14 @@ import { worldBorders } from "./data/worldBorders.js";
       this.borderUniforms.uOpacity.value = 0.85;
       this.borderUniforms.uDay.value.set("#ffffff");
       this.borderUniforms.uNight.value.set("#94adbc");
-      this.atmUniforms.uIntensity.value = 0.7;
+      this.atmUniforms.uIntensity.value = 0.08;
     } else if (normalizedStyle === "wire") {
       if (borders) borders.visible = false;
       grat.material.opacity = 0.5;
       this.surfUniforms.uDay.value.set("#141a1f");
       this.surfUniforms.uNight.value.set("#0a0e12");
       this.surfUniforms.uTerm.value.set("#14202a");
-      this.atmUniforms.uIntensity.value = 0.85;
+      this.atmUniforms.uIntensity.value = 0.1;
     } else if (normalizedStyle === "solid") {
       if (borders) borders.visible = true;
       grat.material.opacity = 0.06;
@@ -326,7 +324,7 @@ import { worldBorders } from "./data/worldBorders.js";
       this.borderUniforms.uOpacity.value = 0.55;
       this.borderUniforms.uDay.value.set("#dfe6ec");
       this.borderUniforms.uNight.value.set("#54707f");
-      this.atmUniforms.uIntensity.value = 0.5;
+      this.atmUniforms.uIntensity.value = 0.06;
     }
   };
 
@@ -360,8 +358,6 @@ import { worldBorders } from "./data/worldBorders.js";
       const m = this.markers.get(c.id);
       const active = c.id === activeId;
       m.dot.material.color.copy(active ? new THREE.Color("#ffffff") : this.accent);
-      m.ring.material.color.copy(active ? new THREE.Color("#ffffff") : this.accent);
-      m.pillar.material.color.copy(this.accent);
       m.active = active;
     });
 
@@ -377,41 +373,26 @@ import { worldBorders } from "./data/worldBorders.js";
   GlobeController.prototype._makeMarker = function (c) {
     const group = new THREE.Group();
     const base = llToVec(c.lat, c.lon, R * 1.004);
-    const out = llToVec(c.lat, c.lon, R * 1.10);
 
-    // glowing dot sprite
-    const dotMat = new THREE.SpriteMaterial({ map: this._dotSprite, color: this.accent.clone(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+    const dotMat = new THREE.SpriteMaterial({ map: this._dotSprite, color: this.accent.clone(), transparent: true, depthWrite: false });
     const dot = new THREE.Sprite(dotMat);
     dot.position.copy(base);
-    dot.scale.setScalar(0.05);
+    dot.scale.setScalar(0.04);
     group.add(dot);
 
-    // pillar line
-    const pg = new THREE.BufferGeometry();
-    pg.setAttribute("position", new THREE.Float32BufferAttribute([base.x, base.y, base.z, out.x, out.y, out.z], 3));
-    const pillar = new THREE.Line(pg, new THREE.LineBasicMaterial({ color: this.accent.clone(), transparent: true, opacity: 0.5 }));
-    group.add(pillar);
-
-    // pulse ring (oriented to surface normal)
-    const ringGeo = new THREE.RingGeometry(0.018, 0.03, 32);
-    const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: this.accent.clone(), transparent: true, opacity: 0.0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
-    ring.position.copy(base);
-    ring.lookAt(base.clone().multiplyScalar(2));
-    group.add(ring);
-
-    return { group, dot, pillar, ring, city: c, born: performance.now() };
+    return { group, dot, city: c, born: performance.now() };
   };
 
   GlobeController.prototype._rebuildArcs = function () {
     for (const a of this.arcs) this.arcGroup.remove(a.line);
     this.arcs = [];
-    const cs = this.cities;
-    for (let i = 0; i < cs.length; i++) {
-      for (let j = i + 1; j < cs.length; j++) {
-        const arc = this._makeArc(cs[i], cs[j]);
-        this.arcs.push(arc);
-        this.arcGroup.add(arc.line);
-      }
+    const anchor = this.cities.find((c) => c.id === this.activeId);
+    if (!anchor) return;
+    for (const c of this.cities) {
+      if (c.id === anchor.id) continue;
+      const arc = this._makeArc(anchor, c);
+      this.arcs.push(arc);
+      this.arcGroup.add(arc.line);
     }
   };
 
@@ -419,25 +400,24 @@ import { worldBorders } from "./data/worldBorders.js";
     const va = llToVec(a.lat, a.lon, R).normalize();
     const vb = llToVec(b.lat, b.lon, R).normalize();
     const ang = va.angleTo(vb);
-    const lift = 0.12 + ang * 0.16;
+    // hug the surface so the globe hides the far side of long routes
+    const lift = 0.006;
     const N = 60;
     const pts = [];
     const cols = [];
-    const aIsActive = a.id === this.activeId || b.id === this.activeId;
-    const col = aIsActive ? new THREE.Color("#ffffff") : this.accent;
+    const col = this.accent;
     for (let k = 0; k <= N; k++) {
       const t = k / N;
       // slerp
       const v = va.clone().multiplyScalar(Math.sin((1 - t) * ang)).add(vb.clone().multiplyScalar(Math.sin(t * ang))).multiplyScalar(1 / Math.max(1e-6, Math.sin(ang)));
       v.normalize().multiplyScalar(R * (1 + Math.sin(Math.PI * t) * lift));
       pts.push(v.x, v.y, v.z);
-      const edge = Math.sin(Math.PI * t); // fade ends
       cols.push(col.r, col.g, col.b);
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
     g.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3));
-    const m = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: aIsActive ? 0.55 : 0.22, blending: THREE.AdditiveBlending, depthWrite: false });
+    const m = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.6, depthWrite: false });
     const line = new THREE.Line(g, m);
     line.userData = { born: performance.now(), N };
     g.setDrawRange(0, 1);
@@ -479,12 +459,7 @@ import { worldBorders } from "./data/worldBorders.js";
         const age = (now - m.born) / 1000;
         const pop = Math.min(1, age / 0.4);
         const ease = 1 - Math.pow(1 - pop, 3);
-        m.dot.scale.setScalar(0.03 + ease * (m.active ? 0.05 : 0.04));
-        // pulse ring
-        const phase = (age % 2.4) / 2.4;
-        const rs = 0.6 + phase * 2.6;
-        m.ring.scale.setScalar(rs);
-        m.ring.material.opacity = (m.active ? 0.5 : 0.28) * (1 - phase) * Math.min(1, age / 0.4);
+        m.dot.scale.setScalar(ease * (m.active ? 0.045 : 0.032));
       });
 
       // arc draw-on

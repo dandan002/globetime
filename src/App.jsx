@@ -4,9 +4,11 @@ import {
   ChevronRight,
   Copy,
   Globe2,
+  Moon,
   RotateCcw,
   Search,
   Settings,
+  Sun,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -26,7 +28,6 @@ const DEFAULT_SETTINGS = {
   accent: "#c8cdd3",
   globeStyle: "borders",
   fontPair: "inter",
-  grid: 0.55,
 };
 
 function findCity(name) {
@@ -155,7 +156,7 @@ function CityRow({
         <div className="row-top">
           <span className="row-name">{city.name}</span>
           <span className={`daynight ${daylight ? "is-day" : "is-night"}`}>
-            <span className="dn-dot" />
+            {daylight ? <Sun size={12} /> : <Moon size={12} />}
             {daylight ? "Day" : "Night"}
           </span>
         </div>
@@ -430,17 +431,6 @@ function SettingsPanel({ settings, setSetting }) {
           ))}
         </div>
       </div>
-      <label className="settings-section range-row">
-        <span className="lbl">Texture</span>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={settings.grid}
-          onChange={(event) => setSetting("grid", Number(event.target.value))}
-        />
-      </label>
     </div>
   );
 }
@@ -608,7 +598,6 @@ export function App() {
     const font = FONTS[settings.fontPair] || FONTS.inter;
     root.style.setProperty("--accent", settings.accent);
     root.style.setProperty("--accent-dim", hexA(settings.accent, 0.18));
-    root.style.setProperty("--grid", String(settings.grid));
     root.style.setProperty("--font-ui", font);
     localStorage.setItem("gt_settings", JSON.stringify(settings));
     if (globeRef.current) {
