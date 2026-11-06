@@ -61,6 +61,8 @@ function loadInitialSettings() {
 
   if (settings.globeStyle === "dots") settings.globeStyle = "borders";
   if (!FONTS[settings.fontPair]) settings.fontPair = DEFAULT_SETTINGS.fontPair;
+  // texture setting was removed
+  delete settings.grid;
 
   return settings;
 }
